@@ -1,180 +1,139 @@
 ---
-# Capacitor Next - self-hosted Flux UI (beta)
-# Based on: https://github.com/gimlet-io/capacitor/tree/main/self-host/yaml/capacitor-next
-# NOTE: Self-hosted mode is beta. For licensing contact laszlo@gimlet.io
-#
-# Access: http://<colima-ip>:30081 or kubectl port-forward svc/capacitor-next -n flux-system 9000:80
+# Capacitor v0.4.8 - Simple Flux UI (last version before license-gated "Next")
+# Source: https://github.com/gimlet-io/capacitor/tree/capacitor-v0.4.8/deploy/k8s
+# Access: kubectl port-forward svc/capacitor -n flux-system 9000:9000
+#         or http://<colima-ip>:30081
 
 # --- ServiceAccount ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: capacitor-next
+  name: capacitor
   namespace: flux-system
 ---
-# --- RBAC: Impersonator (allows capacitor to impersonate SAs) ---
+# --- RBAC ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: capacitor-next-impersonator
+  name: capacitor
 rules:
-  - apiGroups: [""]
-    resources: ["users", "groups", "serviceaccounts"]
-    verbs: ["impersonate"]
+  - apiGroups:
+      - networking.k8s.io
+      - apps
+      - ""
+    resources:
+      - pods
+      - pods/log
+      - ingresses
+      - deployments
+      - services
+      - secrets
+      - events
+      - configmaps
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - source.toolkit.fluxcd.io
+      - kustomize.toolkit.fluxcd.io
+      - helm.toolkit.fluxcd.io
+      - infra.contrib.fluxcd.io
+    resources:
+      - gitrepositories
+      - ocirepositories
+      - buckets
+      - helmrepositories
+      - helmcharts
+      - kustomizations
+      - helmreleases
+      - terraforms
+    verbs:
+      - get
+      - watch
+      - list
+      - patch  # for force reconcile
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: capacitor-next-impersonator-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: capacitor-next-impersonator
+  name: capacitor
 subjects:
   - kind: ServiceAccount
-    name: capacitor-next
+    name: capacitor
     namespace: flux-system
----
-# --- RBAC: Preset clusteradmin SA (for noauth mode) ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: capacitor-next-preset-clusteradmin
-rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["*"]
-  - nonResourceURLs: ["*"]
-    verbs: ["*"]
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: capacitor-next-preset-clusteradmin
-  namespace: flux-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: capacitor-next-preset-clusteradmin
 roleRef:
-  apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: capacitor-next-preset-clusteradmin
-subjects:
-  - kind: ServiceAccount
-    name: capacitor-next-preset-clusteradmin
-    namespace: flux-system
----
-# --- ConfigMap: noauth mode for local testing ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: capacitor-next
-  namespace: flux-system
-data:
-  AUTH: "noauth"
-  AUTH_DEBUG: "true"
-  IMPERSONATE_SA_RULES: "noauth=flux-system:capacitor-next-preset-clusteradmin"
-  FLUXCD_NAMESPACE: "flux-system"
----
-# --- Secret: session keys + registry config ---
-# NOTE: LICENSE_KEY is placeholder - contact laszlo@gimlet.io for real one
-apiVersion: v1
-kind: Secret
-metadata:
-  name: capacitor-next
-  namespace: flux-system
-type: Opaque
-stringData:
-  LICENSE_KEY: "trial-local-testing"
-  SESSION_HASH_KEY: "base64:dGhpc2lzYXRlc3RoYXNoa2V5Zm9ybG9jYWx0ZXN0aW5n"
-  SESSION_BLOCK_KEY: "base64:dGhpc2lzYXRlc3RibG9ja2tleWZvcmxvY2FsdGVzdA=="
-  registry.yaml: |
-    clusters:
-    - id: in-cluster
-      name: colima-local
-      apiServerURL: https://kubernetes.default.svc
-      certificateAuthorityFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-      serviceAccount:
-        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
----
-# --- Deployment ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: capacitor-next
-  namespace: flux-system
-  labels:
-    app: capacitor-next
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: capacitor-next
-  template:
-    metadata:
-      labels:
-        app: capacitor-next
-    spec:
-      serviceAccountName: capacitor-next
-      containers:
-        - name: capacitor-next
-          image: ghcr.io/gimlet-io/capacitor-next:0.14.0-rc.4
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 8080
-              name: http
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "128Mi"
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
-          envFrom:
-            - configMapRef:
-                name: capacitor-next
-            - secretRef:
-                name: capacitor-next
-          volumeMounts:
-            - name: registry
-              mountPath: /app/backend/registry.yaml
-              subPath: registry.yaml
-      volumes:
-        - name: registry
-          secret:
-            secretName: capacitor-next
-            items:
-              - key: registry.yaml
-                path: registry.yaml
+  name: capacitor
+  apiGroup: rbac.authorization.k8s.io
 ---
 # --- Service (NodePort for local access) ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: capacitor-next
+  name: capacitor
   namespace: flux-system
   labels:
-    app: capacitor-next
+    app.kubernetes.io/name: capacitor
 spec:
   type: NodePort
-  selector:
-    app: capacitor-next
   ports:
-    - name: http
-      port: 80
-      targetPort: 8080
+    - port: 9000
+      targetPort: http
+      protocol: TCP
+      name: http
       nodePort: 30081
+  selector:
+    app.kubernetes.io/name: capacitor
+---
+# --- Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capacitor
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/name: capacitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: capacitor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: capacitor
+    spec:
+      serviceAccountName: capacitor
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: capacitor
+          image: ghcr.io/gimlet-io/capacitor:v0.4.8
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9000
+              name: http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9000
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 200Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 101
+            runAsNonRoot: true
+            runAsUser: 100
+            seccompProfile:
+              type: RuntimeDefault
