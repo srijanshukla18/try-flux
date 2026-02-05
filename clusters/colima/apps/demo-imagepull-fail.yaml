@@ -12,8 +12,12 @@ spec:
   targetNamespace: demo-apps
   chart:
     spec:
-      chart: oci://registry-1.docker.io/bitnamicharts/nginx
+      chart: nginx
       version: "18.2.6"
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami
+        namespace: flux-system
   install:
     createNamespace: true
     remediation:

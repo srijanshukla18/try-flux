@@ -1,2 +1,11 @@
-# No HelmRepository needed - bitnami uses OCI registry directly in HelmRelease
-# This file kept for future sources if needed
+---
+# OCI HelmRepository for bitnami charts
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: bitnami
+  namespace: flux-system
+spec:
+  type: oci
+  interval: 1h
+  url: oci://registry-1.docker.io/bitnamicharts
