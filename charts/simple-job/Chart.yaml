@@ -1,0 +1,5 @@
+apiVersion: v2
+name: simple-job
+description: A simple chart that creates a Kubernetes Job (for demo purposes)
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,7 @@
+# Job configuration
+jobName: demo-job
+image: busybox:latest
+command: ["sh", "-c", "echo 'Job running'; exit 0"]
+
+# Set to non-zero to simulate failure
+exitCode: 0

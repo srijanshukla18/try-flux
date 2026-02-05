@@ -1,0 +1,66 @@
+---
+# Capacitor - lightweight Flux UI
+# Docs: https://github.com/gimlet-io/capacitor
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: capacitor
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: capacitor
+  namespace: capacitor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: capacitor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: capacitor
+    namespace: capacitor
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capacitor
+  namespace: capacitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: capacitor
+  template:
+    metadata:
+      labels:
+        app: capacitor
+    spec:
+      serviceAccountName: capacitor
+      containers:
+        - name: capacitor
+          image: ghcr.io/gimlet-io/capacitor:v0.14.0
+          ports:
+            - containerPort: 9000
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: capacitor
+  namespace: capacitor
+spec:
+  type: NodePort
+  selector:
+    app: capacitor
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30081

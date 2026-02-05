@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.jobName }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.jobName }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  # No TTL - job sticks around after completion/failure
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: job
+          image: {{ .Values.image }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "Job started"
+              sleep 2
+              echo "Exiting with code {{ .Values.exitCode }}"
+              exit {{ .Values.exitCode }}

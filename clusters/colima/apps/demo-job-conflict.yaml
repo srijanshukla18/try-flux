@@ -1,0 +1,29 @@
+---
+# Demo: Job name conflict scenario
+# This HelmRelease creates a Job with a fixed name
+# First run: Job fails (exitCode: 1) and sticks around
+# Second run: Cannot create job - name already exists
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: demo-job-conflict
+  namespace: flux-system
+spec:
+  interval: 5m
+  targetNamespace: demo-apps
+  chart:
+    spec:
+      chart: ./charts/simple-job
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+  install:
+    createNamespace: true
+    remediation:
+      retries: 1
+  values:
+    jobName: my-data-migration  # Fixed name - will conflict!
+    image: busybox:latest
+    # Exit with failure so job stays around
+    exitCode: 1
