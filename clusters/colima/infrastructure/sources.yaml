@@ -1,8 +1,2 @@
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
-metadata:
-  name: bitnami
-  namespace: flux-system
-spec:
-  interval: 1h
-  url: https://charts.bitnami.com/bitnami
+# No HelmRepository needed - bitnami uses OCI registry directly in HelmRelease
+# This file kept for future sources if needed
