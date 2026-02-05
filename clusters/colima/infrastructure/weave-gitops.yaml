@@ -37,8 +37,8 @@ metadata:
     app.kubernetes.io/instance: weave-gitops
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: weave-gitops
-    app.kubernetes.io/version: v0.38.0
-    helm.sh/chart: weave-gitops-4.0.36
+    app.kubernetes.io/version: v0.39.1-rc.1
+    helm.sh/chart: weave-gitops-0.39.1-rc.1
   name: weave-gitops
   namespace: flux-system
 ---
@@ -87,8 +87,8 @@ metadata:
     app.kubernetes.io/instance: weave-gitops
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: weave-gitops
-    app.kubernetes.io/version: v0.38.0
-    helm.sh/chart: weave-gitops-4.0.36
+    app.kubernetes.io/version: v0.39.1-rc.1
+    helm.sh/chart: weave-gitops-0.39.1-rc.1
   name: weave-gitops
   namespace: flux-system
 roleRef:
@@ -108,8 +108,8 @@ metadata:
     app.kubernetes.io/instance: weave-gitops
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: weave-gitops
-    app.kubernetes.io/version: v0.38.0
-    helm.sh/chart: weave-gitops-4.0.36
+    app.kubernetes.io/version: v0.39.1-rc.1
+    helm.sh/chart: weave-gitops-0.39.1-rc.1
   name: weave-gitops
   namespace: flux-system
 spec:
@@ -132,8 +132,8 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: weave-gitops
     app.kubernetes.io/part-of: weave-gitops
-    app.kubernetes.io/version: v0.38.0
-    helm.sh/chart: weave-gitops-4.0.36
+    app.kubernetes.io/version: v0.39.1-rc.1
+    helm.sh/chart: weave-gitops-0.39.1-rc.1
     weave.works/app: weave-gitops-oss
   name: weave-gitops
   namespace: flux-system
@@ -162,7 +162,9 @@ spec:
           value: 'true'
         - name: WEAVE_GITOPS_FEATURE_CLUSTER
           value: 'false'
-        image: ghcr.io/weaveworks/wego-app:v0.38.0
+        - name: WEAVE_GITOPS_FEATURE_GITOPS_RUNTIME
+          value: 'false'
+        image: ghcr.io/weaveworks/wego-app:v0.39.1-rc.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -196,32 +198,25 @@ kind: ClusterRole
 metadata:
   name: weave-gitops-readonly
 rules:
-  # Core resources
   - apiGroups: [""]
     resources: ["namespaces", "pods", "pods/log", "events", "services", "configmaps", "secrets"]
     verbs: ["get", "list", "watch"]
-  # Apps
   - apiGroups: ["apps"]
     resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
     verbs: ["get", "list", "watch"]
-  # Flux source resources
   - apiGroups: ["source.toolkit.fluxcd.io"]
     resources: ["gitrepositories", "helmrepositories", "helmcharts", "ocirepositories", "buckets"]
     verbs: ["get", "list", "watch"]
-  # Flux kustomize resources
   - apiGroups: ["kustomize.toolkit.fluxcd.io"]
     resources: ["kustomizations"]
     verbs: ["get", "list", "watch"]
-  # Flux helm resources
   - apiGroups: ["helm.toolkit.fluxcd.io"]
     resources: ["helmreleases"]
     verbs: ["get", "list", "watch"]
-  # Batch resources (for jobs)
   - apiGroups: ["batch"]
     resources: ["jobs", "cronjobs"]
     verbs: ["get", "list", "watch"]
 ---
-# Bind readonly-user to the read-only role
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
